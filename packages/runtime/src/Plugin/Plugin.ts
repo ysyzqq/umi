@@ -20,6 +20,7 @@ function _compose({ fns, args }: { fns: (Function | any)[]; args?: object }) {
     return fns[0];
   }
   const last = fns.pop();
+  // 后一个的输入是前一个函数, 第一个pop的是初始参数
   return fns.reduce((a, b) => () => b(a, args), last);
 }
 
@@ -53,6 +54,7 @@ export default class Plugin {
   getHooks(keyWithDot: string) {
     const [key, ...memberKeys] = keyWithDot.split('.');
     let hooks = this.hooks[key] || [];
+    // lodash get?
     if (memberKeys.length) {
       hooks = hooks
         .map((hook: any) => {
@@ -92,7 +94,8 @@ export default class Plugin {
         `applyPlugins failed, args must be plain object.`,
       );
     }
-
+    // 运行时插件调用
+    // 只支持修改,事件,组合
     switch (type) {
       case ApplyPluginsType.modify:
         if (async) {

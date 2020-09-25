@@ -8,6 +8,7 @@
     "build": "father-build",
     "start": "npm run build && npm run docs:dev",
     "debug": "node --inspect-brk packages/umi/bin/umi.js",
+    "build2": "PACKAGE=renderer-mpa father-build",
     "docs": "node ./scripts/docs.js",
     "docs:build": "node ./packages/umi/bin/umi.js build",
     "docs:dev": "node ./packages/umi/bin/umi.js dev",
@@ -21,10 +22,6 @@
     "now-build": "echo \"Hello\"",
     "benchmark": "node scripts/benchmarks.js",
     "update:deps": "yarn upgrade-interactive --latest"
-  },
-  "gitHooks": {
-    "pre-commit": "lint-staged",
-    "commit-msg": "node scripts/verifyCommit.js"
   },
   "lint-staged": {
     "*.{js,jsx,less,md,json}": [

@@ -78,6 +78,7 @@ export default class Config {
     return defaultConfig;
   }
 
+  // ysy: 读取配置项的schema, 验证配置的正确性
   getConfig({ defaultConfig }: { defaultConfig: object }) {
     assert(
       this.service.stage >= ServiceStage.pluginReady,
@@ -92,6 +93,19 @@ export default class Config {
     });
 
     // get config
+    /**
+     * ysy: 配置校验现在都是以plugin的形式注入,
+     * 例如: copy: 
+     api.describe({
+    key: 'copy',
+    config: {
+      schema(joi) {
+        return joi.array().items(joi.string());
+      },
+    },
+  });
+
+     */
     const pluginIds = Object.keys(this.service.plugins);
     pluginIds.forEach((pluginId) => {
       const { key, config = {} } = this.service.plugins[pluginId];
@@ -100,6 +114,7 @@ export default class Config {
 
       const value = getUserConfigWithKey({ key, userConfig });
       // 不校验 false 的值，此时已禁用插件
+      // ysy: 配置的值为false就是不开启功能, 不做校验
       if (value === false) return;
 
       // do validate
@@ -108,6 +123,7 @@ export default class Config {
         joi.isSchema(schema),
         `schema return from plugin ${pluginId} is not valid schema.`,
       );
+      // ysy: 验证, 用的库是joi
       const { error } = schema.validate(value);
       if (error) {
         const e = new Error(
@@ -118,12 +134,14 @@ export default class Config {
       }
 
       // remove key
+      // ysy: 验证通过就把key删除, userConfigKeys用来在后面提示用户有哪些无效配置
       const index = userConfigKeys.indexOf(key.split('.')[0]);
       if (index !== -1) {
         userConfigKeys.splice(index, 1);
       }
 
       // update userConfig with defaultConfig
+      // ysy: 跟新默认配置 deep merge
       if (key in defaultConfig) {
         const newValue = mergeDefault({
           defaultConfig: defaultConfig[key],
@@ -146,12 +164,14 @@ export default class Config {
   }
 
   getUserConfig() {
+    // ysy: 读取配置文件
     const configFile = this.getConfigFile();
     this.configFile = configFile;
     // 潜在问题：
     // .local 和 .env 的配置必须有 configFile 才有效
     if (configFile) {
       let envConfigFile;
+      // ysy: 读取环境特定的配置文件
       if (process.env.UMI_ENV) {
         const envConfigFileName = this.addAffix(
           configFile,
@@ -182,17 +202,21 @@ export default class Config {
         .filter((f) => existsSync(f));
 
       // clear require cache and set babel register
+      // ysy: 配置文件可能依赖其他文件, 这里去解析所有依赖的配置文件
       const requireDeps = files.reduce((memo: string[], file) => {
         memo = memo.concat(parseRequireDeps(file));
         return memo;
       }, []);
+      // ysy: 清理require.cache缓存
       requireDeps.forEach(cleanRequireCache);
+      // ysy: 给这些文件添加babel处理
       this.service.babelRegister.setOnlyMap({
         key: 'config',
         value: requireDeps,
       });
 
       // require config and merge
+      // ysy: deep merge configs
       return this.mergeConfig(...this.requireConfigs(files));
     } else {
       return {};
@@ -205,6 +229,7 @@ export default class Config {
   }
 
   requireConfigs(configFiles: string[]) {
+    // ysy: 导出配置文件里的config对象
     return configFiles.map((f) => compatESModuleRequire(require(f)));
   }
 
@@ -250,6 +275,7 @@ export default class Config {
     return [configDir].concat(files);
   }
 
+  // ysy: --watch模式会调用这个方法
   watch(opts: {
     userConfig: object;
     onChange: (args: {
